@@ -1,4 +1,10 @@
 ---
+  - name: Check if Elasticsearch already downloaded
+    stat:
+      path: "/tmp/elasticsearch-{{ elastic_version }}-linux-x86_64.tar.gz"
+    register: elastic_loaded
+    tags: elastic
+
   - name: Upload tar.gz Elasticsearch from remote URL
     get_url:
       url: "https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-{{ elastic_version }}-linux-x86_64.tar.gz"
@@ -7,13 +13,16 @@
       timeout: 60
       force: true
     register: get_elastic
+    when: not elastic_loaded.stat.exists
     until: get_elastic is succeeded
     tags: elastic
+
   - name: Create directrory for Elasticsearch
     file:
       state: directory
       path: "{{ elastic_home }}"
     tags: elastic
+
   - name: Extract Elasticsearch in the installation directory
     become: true
     unarchive:
@@ -25,6 +34,7 @@
     tags:
       - skip_ansible_lint
       - elastic
+
   - name: Set environment Elastic
     become: yes
     template:
